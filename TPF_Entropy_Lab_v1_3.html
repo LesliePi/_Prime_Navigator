@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TPF Entropy Lab — BarefootRealism Labs</title>
+<style>
+  :root{
+    --bg:#0a0e12; --panel:#111820; --panel2:#0d141b; --line:#1e2a36;
+    --ink:#cfe3ef; --dim:#6f8597; --faint:#41566640;
+    --gold:#d9a441; --cyan:#46c6c0; --good:#4ec98a; --bad:#e8635f; --warn:#d9a441;
+    --mono:'JetBrains Mono','SF Mono',ui-monospace,Menlo,Consolas,monospace;
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.5;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 18% -10%,#13202b 0,transparent 45%);}
+  .wrap{max-width:1080px;margin:0 auto;padding:32px 24px 80px}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+  .brand{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase}
+  h1{font-family:var(--mono);font-weight:600;font-size:23px;letter-spacing:-.01em;margin-top:6px}
+  h1 .sub{color:var(--dim);font-weight:400}
+  .tag{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .lead{color:var(--dim);font-size:14px;max-width:62ch;margin:14px 0 26px}
+  .lead b{color:var(--ink);font-weight:500}
+
+  .load{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px}
+  .btn{font-family:var(--mono);font-size:13px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);padding:9px 16px;border-radius:7px;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:var(--cyan);color:#fff}
+  .btn.primary{background:linear-gradient(180deg,#1a2a36,#13202b);border-color:#2a3f4f}
+  .btn.go{border-color:var(--gold);color:var(--gold)}
+  .btn.go:hover{background:var(--gold);color:#0a0e12}
+  input[type=file]{display:none}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:20px}
+  .panel.full{grid-column:1/-1}
+  .ph{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+  .ph .n{font-family:var(--mono);font-size:11px;color:var(--gold);border:1px solid #3a2f18;
+    background:#1a1408;border-radius:5px;padding:2px 7px}
+  .ph h2{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
+
+  .metric{display:flex;align-items:baseline;justify-content:space-between;
+    padding:9px 0;border-bottom:1px dashed var(--faint);font-family:var(--mono);font-size:13px}
+  .metric:last-child{border:0}
+  .metric .k{color:var(--dim)}
+  .metric .v{color:var(--ink);font-weight:500}
+  .v.good{color:var(--good)} .v.bad{color:var(--bad)} .v.warn{color:var(--warn)}
+
+  .bigval{font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:-.02em;margin:6px 0}
+  .bigval small{font-size:14px;color:var(--dim);font-weight:400;margin-left:6px}
+  .verdict{font-family:var(--mono);font-size:15px;font-weight:600;padding:14px 18px;border-radius:9px;
+    display:flex;align-items:center;gap:12px;letter-spacing:.02em}
+  .verdict.clean{background:#0e2018;border:1px solid #1f4a35;color:var(--good)}
+  .verdict.fp{background:#221012;border:1px solid #4a2122;color:var(--bad)}
+  .verdict .dot{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 12px currentColor}
+
+  .bars{margin-top:4px}
+  .bar{display:grid;grid-template-columns:46px 1fr 64px;align-items:center;gap:10px;
+    font-family:var(--mono);font-size:11px;padding:3px 0}
+  .bar .lab{color:var(--dim);text-align:right}
+  .bar .track{height:9px;background:#0c151c;border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+  .bar .fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--gold));border-radius:5px;transition:width .5s}
+  .bar .val{color:var(--ink);text-align:right}
+
+  .dist{height:120px;display:flex;align-items:flex-end;gap:2px;margin-top:8px;
+    padding:8px;background:var(--panel2);border-radius:8px;border:1px solid var(--line);position:relative}
+  .dist .col{flex:1;background:#27424f;border-radius:2px 2px 0 0;min-height:1px;transition:.3s}
+  .dist .obs{position:absolute;top:8px;bottom:8px;width:2px;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+  .dist .obs .lbl{position:absolute;top:-2px;left:6px;font-family:var(--mono);font-size:10px;color:var(--gold);white-space:nowrap}
+
+  pre.cert{font-family:var(--mono);font-size:11px;color:var(--dim);background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;max-height:280px;line-height:1.55;white-space:pre-wrap;word-break:break-all}
+  .hashline{font-family:var(--mono);font-size:11px;color:var(--cyan);word-break:break-all;margin-top:8px}
+  .empty{color:var(--dim);font-family:var(--mono);font-size:12px;text-align:center;padding:30px 0}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;color:var(--dim);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  a{color:var(--cyan);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand">BarefootRealism Labs · Prime Crypto Lab</div>
+      <h1>TPF Entropy Lab <span class="sub">— v1</span></h1>
+    </div>
+    <div class="tag" id="srcTag">nincs betöltött bundle</div>
+  </header>
+
+  <p class="lead">
+    Betölt egy <b>TPF_StrongPrimeGen</b> certifikált prím-bundle-t, újra-ellenőrzi minden prím
+    <b>Pocklington–Lehmer</b> tanúsítványát, megméri a <b>maradék-ujjlenyomat</b> és a
+    <b>szekvencia-entrópia (K_prim/bigram)</b> strukturális szivárgását bitben, majd kiad egy
+    önállóan ellenőrizhető <b>mérési certifikátumot</b>.
+  </p>
+
+  <div class="load">
+    <label class="btn primary" for="file">Bundle betöltése (.json)</label>
+    <input type="file" id="file" accept=".json,application/json">
+    <button class="btn" id="sample">Minta betöltése</button>
+    <button class="btn go" id="run" disabled>▶ Mérés futtatása</button>
+    <span class="hint" id="loadHint"></span>
+  </div>
+
+  <div id="results" style="display:none">
+    <div class="grid">
+      <!-- 1 integritás -->
+      <div class="panel">
+        <div class="ph"><span class="n">01</span><h2>Tanúsítvány-integritás</h2></div>
+        <div class="metric"><span class="k">prímek száma</span><span class="v" id="m_n">—</span></div>
+        <div class="metric"><span class="k">Pocklington újra-ellenőrzés</span><span class="v" id="m_pock">—</span></div>
+        <div class="metric"><span class="k">erősség (p−1 nagy faktor)</span><span class="v" id="m_str">—</span></div>
+        <div class="metric"><span class="k">forrás tartalom-hash</span><span class="v" id="m_src" style="font-size:10px">—</span></div>
+      </div>
+
+      <!-- 2 verdikt -->
+      <div class="panel">
+        <div class="ph"><span class="n">02</span><h2>Összesített verdikt</h2></div>
+        <div class="verdict" id="verdict"><span class="dot"></span><span id="verdictTxt">—</span></div>
+        <div class="metric" style="margin-top:14px"><span class="k">maradék-szivárgás</span><span class="v" id="m_leak">—</span></div>
+        <div class="metric"><span class="k">szekvencia-struktúra (z)</span><span class="v" id="m_z">—</span></div>
+      </div>
+
+      <!-- 3 maradék-ujjlenyomat -->
+      <div class="panel full">
+        <div class="ph"><span class="n">03</span><h2>Maradék-ujjlenyomat · szivárgás bitben modulusonként</h2></div>
+        <div class="bigval"><span id="leakTotal">—</span><small>bit összes (0 = megkülönböztethetetlen véletlen prímtől)</small></div>
+        <div class="bars" id="leakBars"></div>
+      </div>
+
+      <!-- 4 szekvencia entrópia -->
+      <div class="panel full">
+        <div class="ph"><span class="n">04</span><h2>Szekvencia-entrópia · K_prim/bigram kölcsönös információ</h2></div>
+        <div class="grid" style="gap:24px">
+          <div>
+            <div class="metric"><span class="k">ábécé</span><span class="v" style="font-size:11px" id="se_abc">—</span></div>
+            <div class="metric"><span class="k">MI megfigyelt</span><span class="v" id="se_mi">—</span></div>
+            <div class="metric"><span class="k">MI shuffle-átlag</span><span class="v" id="se_mu">—</span></div>
+            <div class="metric"><span class="k">MI shuffle-szórás</span><span class="v" id="se_sd">—</span></div>
+            <div class="metric"><span class="k">z-score</span><span class="v" id="se_z">—</span></div>
+          </div>
+          <div>
+            <div class="hint" style="margin-bottom:6px">shuffle-eloszlás (kék) vs megfigyelt MI (arany) — &gt;3σ = valódi soros struktúra</div>
+            <div class="dist" id="seDist"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 certifikátum -->
+      <div class="panel full">
+        <div class="ph"><span class="n">05</span><h2>Mérési certifikátum</h2></div>
+        <pre class="cert" id="certOut">—</pre>
+        <div class="hashline" id="certHash"></div>
+        <button class="btn go" id="dl" style="margin-top:12px">Certifikátum mentése (.json)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="emptyState" class="empty panel" style="margin-top:8px">
+    Tölts be egy certifikált prím-bundle-t, vagy kattints a „Minta betöltése" gombra.
+  </div>
+
+  <footer>
+    <span>TPF Entropy Lab v1.2 · Pocklington-Lehmer + Shannon</span>
+    <span>László Tatai · <a href="https://doi.org/10.5281/zenodo.19698943">Zenodo</a> · ORCID 0009-0007-5153-6306</span>
+  </footer>
+</div>
+
+<script>window.__SAMPLE__ = {"meta":{"generator":"TPF_StrongPrimeGen_v1_0","author":"Laszlo Tatai | BarefootRealism Labs","orcid":"0009-0007-5153-6306","zenodo":"https://doi.org/10.5281/zenodo.19698943","generated":"2026-06-12T17:30:12Z","params":{"bits":256,"R0":0,"r_bits":120,"safe":false,"force_3":false,"residue_leak_bits":0.0},"count":14},"primes":[{"N":"25778041955214743476784173791335809195596518649843879572705392994930267258881","bits":254,"strength":{"p_minus_1_largest_prime_bits":120,"r":"913214118496132855797458647340985461","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"5":1,"7":1,"809":1,"913214118496132855797458647340985461":1},"witnesses":{"2":"11","3":"2","5":"2","7":"2","809":"2","913214118496132855797458647340985461":"2"}},"proved":true,"stats":{"candidates":27,"seconds":0.004}},{"N":"109064735967995814653085896843482574895743489867188346257873969448674832416769","bits":256,"strength":{"p_minus_1_largest_prime_bits":120,"r":"1320546845624662658238159460730648981","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"248537":1,"1320546845624662658238159460730648981":1},"witnesses":{"2":"3","248537":"2","1320546845624662658238159460730648981":"2"}},"proved":true,"stats":{"candidates":30,"seconds":0.003}},{"N":"15004204246761913911661733547137348242230972902357257341142383493798520946689","bits":254,"strength":{"p_minus_1_largest_prime_bits":120,"r":"1133523329060581869623666312429934569","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"61":1,"653":1,"1133523329060581869623666312429934569":1},"witnesses":{"2":"3","61":"2","653":"2","1133523329060581869623666312429934569":"2"}},"proved":true,"stats":{"candidates":144,"seconds":0.007}},{"N":"28644221952257281586402631016290245246410851125998837697963512996765527703553","bits":254,"strength":{"p_minus_1_largest_prime_bits":120,"r":"832485730438177054492151941661038831","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"11":1,"9413":1,"832485730438177054492151941661038831":1},"witnesses":{"2":"3","11":"3","9413":"2","832485730438177054492151941661038831":"2"}},"proved":true,"stats":{"candidates":21,"seconds":0.003}},{"N":"46122107650548436985750799670771309581757195553870169556192135513936119201793","bits":255,"strength":{"p_minus_1_largest_prime_bits":120,"r":"810507110349427207554235218883363151","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":2,"53":1,"359":1,"810507110349427207554235218883363151":1},"witnesses":{"2":"5","3":"2","53":"2","359":"2","810507110349427207554235218883363151":"2"}},"proved":true,"stats":{"candidates":302,"seconds":0.014}},{"N":"5336760026781144079104675035774554817345405837267228415608243657961218506753","bits":252,"strength":{"p_minus_1_largest_prime_bits":120,"r":"1267639753234597262270556868629155657","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"41":1,"103":1,"1267639753234597262270556868629155657":1},"witnesses":{"2":"5","3":"2","41":"2","103":"3","1267639753234597262270556868629155657":"2"}},"proved":true,"stats":{"candidates":6,"seconds":0.002}},{"N":"4917242895534858275963365629665059878096591775528744564525224195004026585089","bits":252,"strength":{"p_minus_1_largest_prime_bits":120,"r":"778272213118654029217669258320090929","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"19013":1,"778272213118654029217669258320090929":1},"witnesses":{"2":"3","19013":"2","778272213118654029217669258320090929":"2"}},"proved":true,"stats":{"candidates":12,"seconds":0.002}},{"N":"55979325510312679499095673732381438182398948724972524882177985055786606264321","bits":255,"strength":{"p_minus_1_largest_prime_bits":120,"r":"782264065125956837557665295615428299","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"5":1,"13":1,"3313":1,"782264065125956837557665295615428299":1},"witnesses":{"2":"3","5":"3","13":"2","3313":"2","782264065125956837557665295615428299":"2"}},"proved":true,"stats":{"candidates":26,"seconds":0.003}},{"N":"40515297054081009807164543619886863465068062990470763009288082835894207250433","bits":255,"strength":{"p_minus_1_largest_prime_bits":120,"r":"867835113004828000389813328676061977","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"37":1,"3797":1,"867835113004828000389813328676061977":1},"witnesses":{"2":"3","37":"2","3797":"2","867835113004828000389813328676061977":"2"}},"proved":true,"stats":{"candidates":5,"seconds":0.002}},{"N":"9642238436308426148500860920395544087727344606534045724012259648871193378817","bits":253,"strength":{"p_minus_1_largest_prime_bits":120,"r":"1165443862175158852294166402870405237","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"43":1,"193":1,"1165443862175158852294166402870405237":1},"witnesses":{"2":"5","3":"2","43":"2","193":"2","1165443862175158852294166402870405237":"2"}},"proved":true,"stats":{"candidates":111,"seconds":0.006}},{"N":"27485402914907658532741272290560490794704965096141918085294389134506973986817","bits":254,"strength":{"p_minus_1_largest_prime_bits":120,"r":"860845284632381743780557722512466819","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"32027":1,"860845284632381743780557722512466819":1},"witnesses":{"2":"5","3":"2","32027":"2","860845284632381743780557722512466819":"2"}},"proved":true,"stats":{"candidates":109,"seconds":0.006}},{"N":"63095110701122903054560028676714425985853897477225488497922727440173708083201","bits":256,"strength":{"p_minus_1_largest_prime_bits":120,"r":"1241588636624572119022773774729942761","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"5":2,"2039":1,"1241588636624572119022773774729942761":1},"witnesses":{"2":"7","3":"2","5":"2","2039":"2","1241588636624572119022773774729942761":"2"}},"proved":true,"stats":{"candidates":75,"seconds":0.006}},{"N":"5885774803387746086388678366951104486937980160779267547029109051137193934849","bits":252,"strength":{"p_minus_1_largest_prime_bits":120,"r":"1142626880903284047937431576896060617","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"5167":1,"1142626880903284047937431576896060617":1},"witnesses":{"2":"7","3":"3","5167":"2","1142626880903284047937431576896060617":"2"}},"proved":true,"stats":{"candidates":148,"seconds":0.008}},{"N":"68342012617357832160488186477431799129841735809590076129588874277433647300609","bits":256,"strength":{"p_minus_1_largest_prime_bits":120,"r":"860689874215436246559484033047025681","pollard_p1_resistant":true,"safe_prime_r":false},"fingerprint":{"R0":0,"force_3":false,"jacobi_forced_QR_below":0,"residue_leak_bits":0.0,"note":"minden prim p<=R0: N mod p = 1 (maradek-ujjlenyomat, ~log2(p-1) bit/p). force_3 eseten +1 bit (mod 3=1). R0=0 es force_3=False eseten ~0 bit."},"construction":{"form":"2^a * Q_R0 * r * t + 1","r_bits":120,"seed":7},"certificate":{"factors":{"2":118,"3":1,"23":1,"3463":1,"860689874215436246559484033047025681":1},"witnesses":{"2":"11","3":"7","23":"3","3463":"2","860689874215436246559484033047025681":"2"}},"proved":true,"stats":{"candidates":237,"seconds":0.013}}],"certification":{"scheme":"Pocklington-Lehmer per-prime; SHA256 content hash for integrity","content_sha256":"9d801ca903c4b4381ceb8a3e6cb924ee8a665ba717f3ec6efa00c4579ca0f54a"}};</script>
+<script>
+"use strict";
+const MODULI=[3n,4n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n,41n,43n,47n];
+// mod 4 baseline: phi(4)=2 (prímek csak {1,3} mod 4), nem p-1=3
+function coprimeClasses(p){ return p===4n ? 2 : Number(p)-1; }
+const COPRIME30=[1,7,11,13,17,19,23,29];
+let BUNDLE=null, LAST_CERT=null;
+
+// ---- BigInt aritmetika ----
+function modpow(b,e,m){ b%=m; if(b<0n)b+=m; let r=1n; while(e>0n){ if(e&1n) r=r*b%m; b=b*b%m; e>>=1n; } return r; }
+function gcd(a,b){ a=a<0n?-a:a; b=b<0n?-b:b; while(b){ [a,b]=[b,a%b]; } return a; }
+function isProbablePrime(n){
+  if(n<2n) return false;
+  for(const p of [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n]){ if(n%p===0n) return n===p; }
+  let d=n-1n,r=0n; while(d%2n===0n){ d/=2n; r++; }
+  for(const a of [2n,3n,5n,7n,11n,13n,17n,19n,23n,29n,31n,37n]){
+    if(a>=n) continue; let x=modpow(a,d,n);
+    if(x===1n||x===n-1n) continue; let ok=false;
+    for(let i=0n;i<r-1n;i++){ x=x*x%n; if(x===n-1n){ok=true;break;} }
+    if(!ok) return false; }
+  return true;
+}
+function bitlen(n){ return n.toString(2).length; }
+
+// ---- Maurer rekurzív fa-verifikáló (új formátum) ----
+function verifyTree(cert){
+  const N=BigInt(cert.N);
+  if(cert.method==='trial'){ return N<(1n<<22n) && isProbablePrime(N); }
+  const q=BigInt(cert.q);
+  if(!verifyTree(cert.q_cert)) return false;
+  if(BigInt(cert.q_cert.N)!==q) return false;
+  const pm1=N-1n;
+  if(pm1%q!==0n||pm1%2n!==0n) return false;
+  if((2n*q)*(2n*q)<=N) return false;
+  const a=BigInt(cert.witness);
+  if(modpow(a,pm1,N)!==1n) return false;
+  if(gcd(modpow(a,pm1/2n,N)-1n,N)!==1n) return false;
+  if(gcd(modpow(a,pm1/q,N)-1n,N)!==1n) return false;
+  return true;
+}
+
+// ---- Pocklington újra-ellenőrzés ----
+function verifyRecord(rec){
+  // ÚJ formátum: Maurer-rekurzív fa (van q_cert / method mező)
+  if(rec.certificate && (rec.certificate.method==='maurer'||rec.certificate.method==='trial')){
+    let ok=false; try{ ok=verifyTree(rec.certificate); }catch(e){ ok=false; }
+    let rbits=0, strong=false;
+    if(rec.strength){ rbits=rec.strength.p_minus_1_largest_prime_bits||0; strong=ok&&rbits>0; }
+    return {ok,strong,rbits};
+  }
+  let N; try{ N=BigInt(rec.N);}catch(e){return {ok:false};}
+  if(N<2n) return {ok:false};
+  const Nm1=N-1n;
+  const factors=rec.certificate.factors;
+  let F=1n; for(const q in factors) F*=BigInt(q)**BigInt(factors[q]);
+  if(Nm1%F!==0n) return {ok:false,why:'F∤N−1'};
+  if(F*F<=N) return {ok:false,why:'F²≤N'};
+  for(const q in factors){
+    const a=BigInt(rec.certificate.witnesses[q]), Q=BigInt(q);
+    if(modpow(a,Nm1,N)!==1n) return {ok:false,why:'Fermat q='+q};
+    if(gcd(modpow(a,Nm1/Q,N)-1n,N)!==1n) return {ok:false,why:'gcd q='+q};
+  }
+  // erősség
+  let strong=false, rbits=0;
+  if(rec.strength&&rec.strength.r){
+    const r=BigInt(rec.strength.r);
+    rbits=bitlen(r);
+    strong = (Nm1%r===0n)&&isProbablePrime(r)&&(rbits===rec.strength.p_minus_1_largest_prime_bits);
+  }
+  return {ok:true,strong,rbits};
+}
+
+// ---- entrópia ----
+function shannon(map){ let n=0; for(const v of map.values()) n+=v; let H=0;
+  for(const v of map.values()){ if(v>0){const p=v/n; H-=p*Math.log2(p);} } return H; }
+function lcg(seed){ let s=seed>>>0; return ()=>{ s=(s*1103515245+12345)&0x7fffffff; return s/0x7fffffff; }; }
+function expectedUniformH(n,k,seed){ const rnd=lcg(seed); let acc=0;
+  for(let t=0;t<300;t++){ const c=new Map();
+    for(let i=0;i<n;i++){ const v=Math.floor(rnd()*k); c.set(v,(c.get(v)||0)+1); }
+    acc+=shannon(c); } return acc/300; }
+
+function residueFingerprint(Ns){
+  const n=Ns.length; let total=0; const rows=[];
+  for(const p of MODULI){
+    const c=new Map(); for(const N of Ns){ const r=Number(N%p); c.set(r,(c.get(r)||0)+1); }
+    const H=shannon(c), Hb=expectedUniformH(n,coprimeClasses(p),Number(p)), leak=Math.max(0,Hb-H);
+    total+=leak; rows.push({p:Number(p),H:+H.toFixed(4),H_baseline:+Hb.toFixed(4),leak:+leak.toFixed(4)});
+  }
+  return {total_leak_bits:+total.toFixed(3),per_modulus:rows};
+}
+function sequenceEntropy(Ns){
+  const syms=Ns.map(N=>COPRIME30.indexOf(Number(N%30n)));
+  const mi=s=>{ const u=new Map(),b=new Map();
+    for(const x of s) u.set(x,(u.get(x)||0)+1);
+    for(let i=0;i+1<s.length;i++){ const k=s[i]+','+s[i+1]; b.set(k,(b.get(k)||0)+1); }
+    return 2*shannon(u)-shannon(b); };
+  const MI=mi(syms);
+  const rnd=lcg(12345); const sh=syms.slice(); const mis=[];
+  for(let t=0;t<500;t++){ for(let i=sh.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [sh[i],sh[j]]=[sh[j],sh[i]]; } mis.push(mi(sh)); }
+  const mu=mis.reduce((a,b)=>a+b,0)/mis.length;
+  const sd=Math.sqrt(mis.reduce((a,b)=>a+(b-mu)**2,0)/mis.length);
+  const z=sd>0?(MI-mu)/sd:0;
+  return {alphabet:'N mod 30 · 8 koprím osztály',MI_observed:+MI.toFixed(4),
+    MI_shuffle_mean:+mu.toFixed(4),MI_shuffle_std:+sd.toFixed(4),
+    z_score:+z.toFixed(2),serial_structure:z>3.0,_dist:mis};
+}
+
+async function sha256hex(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ---- futtatás ----
+async function run(){
+  const Ns=BUNDLE.primes.map(r=>BigInt(r.N));
+  let pokCount=0, strongCount=0, firstWhy='';
+  for(const rec of BUNDLE.primes){ const v=verifyRecord(rec);
+    if(v.ok){ pokCount++; if(v.strong) strongCount++; } else if(!firstWhy) firstWhy=v.why||'?'; }
+  const fp=residueFingerprint(Ns);
+  const se=sequenceEntropy(Ns);
+  const allProved=pokCount===Ns.length;
+  const clean = allProved && fp.total_leak_bits<1.5 && !se.serial_structure;
+
+  // render
+  document.getElementById('m_n').textContent=Ns.length;
+  const pe=document.getElementById('m_pock');
+  pe.textContent=`${pokCount}/${Ns.length}`+(allProved?' ✓':` ✗ (${firstWhy})`);
+  pe.className='v '+(allProved?'good':'bad');
+  document.getElementById('m_str').textContent=`${strongCount}/${Ns.length} erős`;
+  document.getElementById('m_src').textContent=(BUNDLE.certification?.content_sha256||'—').slice(0,40)+'…';
+
+  const v=document.getElementById('verdict'), vt=document.getElementById('verdictTxt');
+  v.className='verdict '+(clean?'clean':'fp');
+  vt.textContent=clean?'TISZTA — nincs detektálható struktúra':'UJJLENYOMATOS — strukturális szivárgás';
+  const le=document.getElementById('m_leak'); le.textContent=fp.total_leak_bits+' bit';
+  le.className='v '+(fp.total_leak_bits<1.5?'good':'bad');
+  const ze=document.getElementById('m_z'); ze.textContent='z = '+se.z_score;
+  ze.className='v '+(se.serial_structure?'bad':'good');
+
+  document.getElementById('leakTotal').textContent=fp.total_leak_bits;
+  const maxLeak=Math.max(...fp.per_modulus.map(r=>r.leak),0.5);
+  document.getElementById('leakBars').innerHTML=fp.per_modulus.map(r=>`
+    <div class="bar"><span class="lab">mod ${r.p}</span>
+      <div class="track"><div class="fill" style="width:${Math.min(100,100*r.leak/maxLeak)}%"></div></div>
+      <span class="val">${r.leak.toFixed(2)} b</span></div>`).join('');
+
+  document.getElementById('se_abc').textContent=se.alphabet;
+  document.getElementById('se_mi').textContent=se.MI_observed.toFixed(4)+' bit';
+  document.getElementById('se_mu').textContent=se.MI_shuffle_mean.toFixed(4)+' bit';
+  document.getElementById('se_sd').textContent=se.MI_shuffle_std.toFixed(4);
+  const sez=document.getElementById('se_z'); sez.textContent=se.z_score+' σ';
+  sez.className='v '+(se.serial_structure?'bad':'good');
+  // distribúció hisztogram
+  const dist=se._dist, lo=Math.min(...dist,se.MI_observed), hi=Math.max(...dist,se.MI_observed);
+  const NB=40, bins=new Array(NB).fill(0);
+  for(const x of dist){ let bi=Math.floor((x-lo)/(hi-lo+1e-9)*NB); bi=Math.max(0,Math.min(NB-1,bi)); bins[bi]++; }
+  const mx=Math.max(...bins);
+  const obsPos=100*(se.MI_observed-lo)/(hi-lo+1e-9);
+  document.getElementById('seDist').innerHTML=
+    bins.map(b=>`<div class="col" style="height:${100*b/mx}%"></div>`).join('')+
+    `<div class="obs" style="left:${obsPos}%"><span class="lbl">megfigyelt</span></div>`;
+
+  // certifikátum
+  const cert={ measurement:{
+    lab:'TPF_Entropy_Lab_v1', measured_at:new Date().toISOString(),
+    source_content_sha256:BUNDLE.certification?.content_sha256||null,
+    n_primes:Ns.length, pocklington_verified:pokCount, strong_primes:strongCount,
+    all_proved:allProved,
+    residue_fingerprint:fp,
+    sequence_entropy:{alphabet:se.alphabet,MI_observed:se.MI_observed,
+      MI_shuffle_mean:se.MI_shuffle_mean,MI_shuffle_std:se.MI_shuffle_std,
+      z_score:se.z_score,serial_structure:se.serial_structure},
+    verdict: clean?'tiszta':'ujjlenyomatos'
+  }};
+  const canon=JSON.stringify(cert.measurement,Object.keys(cert.measurement).sort());
+  cert.certificate_sha256=await sha256hex(JSON.stringify(cert.measurement));
+  LAST_CERT=cert;
+  document.getElementById('certOut').textContent=JSON.stringify(cert,null,2);
+  document.getElementById('certHash').textContent='certifikátum SHA-256: '+cert.certificate_sha256;
+}
+
+// ---- betöltés ----
+function loadBundle(obj,label){
+  if(!obj.primes||!Array.isArray(obj.primes)){ hint('Érvénytelen bundle: hiányzik a "primes" tömb.'); return; }
+  BUNDLE=obj;
+  document.getElementById('srcTag').textContent=
+    `${obj.primes.length} prím · ${obj.meta?.params?.bits||'?'} bit · R0=${obj.meta?.params?.R0??'?'} · ${label}`;
+  document.getElementById('run').disabled=false;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('results').style.display='none';
+  hint('Betöltve. Kattints a „Mérés futtatása" gombra.');
+}
+function hint(t){ document.getElementById('loadHint').textContent=t; }
+
+document.getElementById('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ loadBundle(JSON.parse(r.result),f.name); }catch(err){ hint('JSON-hiba: '+err.message); } };
+  r.readAsText(f);
+});
+document.getElementById('run').addEventListener('click',()=>{
+  document.getElementById('results').style.display='block';
+  document.getElementById('run').textContent='▶ Mérés futtatása';
+  setTimeout(run,20);
+});
+document.getElementById('dl').addEventListener('click',()=>{
+  if(!LAST_CERT) return;
+  const blob=new Blob([JSON.stringify(LAST_CERT,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='entropy_measurement_certificate.json'; a.click();
+});
+
+// minta bundle (beágyazva — kis, 12 prímes tiszta minta a gyors próbához)
+document.getElementById('sample').addEventListener('click',async()=>{
+  hint('Minta generálása nem lehetséges böngészőben; töltsd be a StrongPrimeGen JSON-ját. '+
+       'Demó-célból egy beágyazott kis mintát mutatok, ha elérhető.');
+  if(window.__SAMPLE__) loadBundle(window.__SAMPLE__,'beágyazott minta');
+  else hint('Nincs beágyazott minta — kérlek tölts be egy TPF_StrongPrimeGen .json bundle-t.');
+});
+</script>
+</body>
+</html>
