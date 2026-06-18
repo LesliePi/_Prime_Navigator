@@ -2,7 +2,7 @@
 
 **Deterministic, auditable, measurably fingerprint-free prime generation and certification**
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19698943.svg)](https://doi.org/10.5281/zenodo.19698943)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20746751.svg)](https://doi.org/10.5281/zenodo.20746751)
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL--1.1-blue.svg)](LICENSE)
 [![ORCID](https://img.shields.io/badge/ORCID-0009--0007--5153--6306-green)](https://orcid.org/0009-0007-5153-6306)
 
@@ -157,8 +157,8 @@ For commercial licensing: László Tatai — BarefootRealism Labs
   title   = {{TPF Prime Engine}: Deterministic, Auditable, Measurably Clean
               Prime Generation and Certification},
   year    = {2026},
-  doi     = {10.5281/zenodo.19698943},
-  url     = {https://doi.org/10.5281/zenodo.19698943},
+  doi     = {10.5281/zenodo.20746751},
+  url     = {https://doi.org/10.5281/zenodo.20746751},
   orcid   = {0009-0007-5153-6306}
 }
 ```
